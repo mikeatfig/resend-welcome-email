@@ -3,7 +3,7 @@
 Plugin Name: Resend Welcome Email
 Plugin URI:  http://www.twitter.com/atwellpub
 Description: Quickly send a new welcome email and password reset link for a user through the user's profile edit area.
-Version:     1.1.9
+Version:     1.2.0
 Author:      Hudson Atwell
 Author URI:  https://codeable.io/developers/hudson-atwell/?ref=99TG1
 Text Domain: resend-welcome-email
@@ -48,6 +48,10 @@ if ( ! class_exists( 'Resend_Welcome_Email' ) ) {
 
 			add_filter( 'user_row_actions',  array( __CLASS__, 'filter_user_row_actions' ), 10, 2 );
 			add_filter( 'personal_options', array( __CLASS__, 'personal_options' ), 10, 2 );
+			add_filter( 'bulk_actions-users', array( __CLASS__, 'register_bulk_action' ) );
+			add_filter( 'handle_bulk_actions-users', array( __CLASS__, 'handle_bulk_action' ), 10, 3 );
+
+			add_action( 'admin_notices', array( __CLASS__, 'bulk_action_admin_notice' ) );
 
 
 			/* Adds admin listeners for processing actions */
@@ -58,7 +62,7 @@ if ( ! class_exists( 'Resend_Welcome_Email' ) ) {
 		 *  Defines constants.
 		 */
 		public static function define_constants() {
-			define( 'RESEND_WELCOME_EMAIL_CURRENT_VERSION', '1.1.9' );
+			define( 'RESEND_WELCOME_EMAIL_CURRENT_VERSION', '1.2.0' );
 			define( 'RESEND_WELCOME_EMAIL_FILE', __FILE__ );
 			define( 'RESEND_WELCOME_EMAIL_URLPATH', plugins_url( ' ', __FILE__ ) );
 			define( 'RESEND_WELCOME_EMAIL_PATH', WP_PLUGIN_DIR . '/' . plugin_basename( dirname( __FILE__ ) ) . '/' );
@@ -80,6 +84,55 @@ if ( ! class_exists( 'Resend_Welcome_Email' ) ) {
 			$actions['send_welcome_email'] = '<a href="' . $link . '">' . esc_html__( 'Resend Welcome Email', 'resend-welcome-email' ) . '</a>';
 
 			return $actions;
+		}
+
+		/**
+		 * Register bulk action
+		 *
+		 * @param array $bulk_actions
+		 *
+		 * @return array
+		 */
+		public static function register_bulk_action( array $bulk_actions ) {
+			$bulk_actions['bulk_send_welcome_email'] = esc_html__( 'Resend Welcome Email', 'resend-welcome-email' );
+
+			return $bulk_actions;
+		}
+
+		/**
+		 * Handle bulk actions
+		 *
+		 * @param string $sendback
+		 * @param string $doaction
+		 * @param array  $items
+		 *
+		 * @return string
+		 */
+		public static function handle_bulk_action( string $sendback, string $doaction, array $items ) {
+			if ( $doaction !== 'bulk_send_welcome_email' ) {
+				return $sendback;
+			}
+			foreach ( $items as $item ) {
+				self::resend_welcome_email( $item );
+			}
+			$sendback = add_query_arg( 'bulk_sent_welcome_emails', count( $items ), $sendback );
+
+			return $sendback;
+		}
+
+		/**
+		 * Bulk actions notifications
+		 */
+		public static function bulk_action_admin_notice() {
+			if ( ! empty( $_REQUEST['bulk_sent_welcome_emails'] ) ) {
+				$emailed_count = intval( $_REQUEST['bulk_sent_welcome_emails'] );
+				printf( '<div class="updated fade">' .
+					_n( 'Resent %s welcome email.',
+						'Resent %s welcome emails.',
+						$emailed_count,
+						'resend-welcome-email'
+					) . '</div>', $emailed_count );
+			}
 		}
 
 		/**
@@ -150,14 +203,18 @@ if ( ! class_exists( 'Resend_Welcome_Email' ) ) {
 		/**
 		 * Resends the welcome email.
 		 *
+		 * @param int $user_id
+		 *
 		 * @return bool|WP_User WP_User object on success, false on failure.
 		 */
-		public static function resend_welcome_email() {
-			if ( ! isset( $_GET['user_id'] ) ) {
+		public static function resend_welcome_email( int $user_id = 0 ) {
+			if ( ! isset( $_GET['user_id'] ) && $user_id === 0 ) {
 				return false;
 			}
 
-			$user_id = $_GET['user_id'];
+			if ( $user_id === 0 ) {
+				$user_id = $_GET['user_id'];
+			}
 
 			if ( ! $user = get_userdata( $user_id ) ) {
 				return false;

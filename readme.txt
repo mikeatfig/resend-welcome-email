@@ -1,12 +1,12 @@
 === Resend Welcome Email ===
-Contributors: adbox, ramiy, jazbek, afragen, titus, tbnv
+Contributors: adbox, ramiy, jazbek, afragen, titus, tbnv, mikeatfig
 Donate link: hudson.atwell@gmail.com
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Tags: users, welcome-email, user-management, support
-Requires at least: 4.3.1
-Tested up to: 4.9.4
-Stable Tag: 1.1.9
+Requires at least: 4.7.0
+Tested up to: 5.6.1
+Stable Tag: 1.2.0
 Requires PHP: 5.3
 
 Quickly send a new welcome email and password reset link for a user through the user's profile edit area.
@@ -40,6 +40,9 @@ This extension has a public GitHub page where users can contribute fixes and imp
 Please open a issue on GitHub if you run into an issue. I am accepting pull requests too, so fire away.
 
 == Changelog ==
+
+= 1.2.0 =
+* Added bulk action
 
 = 1.1.9 =
 * Adding fr_FR translations (shoutout to Thibaut Ninove)
